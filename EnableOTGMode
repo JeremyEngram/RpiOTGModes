@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# Enable OTG mode
+echo "dtoverlay=dwc2" | sudo tee -a /boot/config.txt
+echo "dwc2" | sudo tee -a /etc/modules
+
+# Create a new file for the USB gadget configuration
+sudo tee /etc/modprobe.d/gadget.conf > /dev/null <<EOT
+options libcomposite drm_please=0
+EOT
+
+# Create a new service for the USB gadget
+sudo tee /etc/systemd/system/usb-gadget.service > /dev/null <<EOT
+[Unit]
+Description=Configure USB gadget mode
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'echo "1" > /sys/kernel/config/usb_gadget/g1/UDC'
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+# Create a new directory for the USB gadget
+sudo mkdir -p /sys/kernel/config/usb_gadget/g1
+sudo cd /sys/kernel/config/usb_gadget/g1
+
+# Set up the USB gadget configuration
+sudo tee configs/c.1/hid.usb0 > /dev/null <<EOT
+# HID gadget
+# http://www.linux-usb.org/gadget/file_storage.html
+
+# Define and configure the HID device
+gadget_hid_usbid=0x1d6b:0x0104
+gadget_hid_name="Raspberry Pi HID Gadget"
+gadget_hid_report_length=16
+
+# Define the HID function
+functions="hid.usb0"
+hid.usb0/protocol="2"
+hid.usb0/subclass="1"
+hid.usb0/report_length=\$gadget_hid_report_length
+hid.usb0/report_desc=\$gadget_hid_report_desc
+hid.usb0/ep1in/usage="0x0b"
+hid.usb0/ep1in/report_id="0x01"
+hid.usb0/ep1out/usage="0x0c"
+hid.usb0/ep1out/report_id="0x01"
+hid.usb0/string0="Raspberry Pi HID Gadget"
+EOT
+
+sudo tee configs/c.1/mass_storage.usb0 > /dev/null <<EOT
+# Mass storage gadget
+# http://www.linux-usb.org/gadget/file_storage.html
+
+# Define and configure the mass storage device
+gadget_mass_storage_usbid=0x1d6b:0x0104
+gadget_mass_storage_vendor="Raspberry Pi"
+gadget_mass_storage_product="Mass Storage Gadget"
+gadget_mass_storage_serial="1234567890"
+gadget_mass_storage_file="/piusb.bin"
+gadget_mass_storage_cdrom=0
+gadget_mass_storage_nofua=0
+
+# Define the mass storage function
+functions+=" mass_storage.usb0"
+mass_storage.usb0/lun.0/file="\$gadget_mass_storage_file"
+mass_storage.usb0/lun.0/removable=\$gadget_mass_storage_cdrom
+mass_storage.usb0/lun.0/nofua=\$gadget_mass_storage_nofua
+mass_storage.usb0/lun.0/ro=0
+mass_storage.usb0/lun.0/cdrom=\$gadget_mass_storage_cdrom
+mass_storage.usb0/lun.0/cdrom-ready-only=1
+mass_storage.usb0/protocol=0x50
+mass_storage.usb0/subclass=0x00
+mass_storage.usb0/nobulktests=1
+mass_storage.usb0

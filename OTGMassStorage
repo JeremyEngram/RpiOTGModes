@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Enable OTG mode
+echo "dtoverlay=dwc2" | sudo tee -a /boot/config.txt
+echo "dwc2" | sudo tee -a /etc/modules
+
+# Create a new file for the USB gadget configuration
+sudo tee /etc/modprobe.d/g_mass_storage.conf > /dev/null <<EOT
+options g_mass_storage file=/piusb.bin stall=0 removable=1
+EOT
+
+# Create a new file system image and mount it
+sudo dd if=/dev/zero of=/piusb.bin bs=1M count=128
+sudo mkdosfs /piusb.bin -F 32 -I
+sudo mkdir /mnt/usb
+sudo mount -o loop /piusb.bin /mnt/usb
+
+# Set up some sample files on the USB gadget
+sudo touch /mnt/usb/hello.txt
+echo "Hello, world!" | sudo tee /mnt/usb/hello.txt > /dev/null
+
+# Clean up
+sudo umount /mnt/usb
+sudo rm -rf /mnt/usb

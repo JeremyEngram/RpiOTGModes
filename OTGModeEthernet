@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Enable OTG mode
+echo "dtoverlay=dwc2" | sudo tee -a /boot/config.txt
+echo "dwc2" | sudo tee -a /etc/modules
+
+# Create a new file for the USB gadget configuration
+sudo tee /etc/modprobe.d/gadget.conf > /dev/null <<EOT
+options libcomposite drm_please=0
+EOT
+
+# Create a new service for the USB gadget
+sudo tee /etc/systemd/system/usb-gadget.service > /dev/null <<EOT
+[Unit]
+Description=Configure USB gadget mode
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'echo "1" > /sys/kernel/config/usb_gadget/g1/UDC'
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+# Create a new directory for the USB gadget
+sudo mkdir -p /sys/kernel/config/usb_gadget/g1
+sudo cd /sys/kernel/config/usb_gadget/g1
+
+# Set up the USB gadget configuration
+sudo tee configs/c.1/hid.usb0 > /dev/null <<EOT
+# Ethernet gadget
+# http://www.linux-usb.org/gadget/usbnet/
+
+# Define the Ethernet device
+gadget_eth_usbid=0x1d6b:0x0104
+gadget_eth_name="Raspberry Pi Ethernet Gadget"
+gadget_eth_mac="de:ad:be:ef:00:01"
+gadget_eth_hostaddr="192.168.7.2"
+gadget_eth_netmask="255.255.255.252"
+gadget_eth_gateway="192.168.7.1"
+
+# Define the Ethernet function
+functions="rndis.usb0"
+rndis.usb0/class="02"
+rndis.usb0/subclass="0"
+rndis.usb0/protocol="0"
+rndis.usb0/Qos="100"
+rndis.usb0/maxburst="0"
+rndis.usb0/ep0maxpacket="64"
+rndis.usb0/host_addr="\$gadget_eth_hostaddr"
+rndis.usb0/dev_addr="\$gadget_eth_mac"
+rndis.usb0/gadget_addr="\$gadget_eth_mac"
+rndis.usb0/ifname="usb0"
+rndis.usb0/iProduct="Raspberry Pi Ethernet Gadget"
+rndis.usb0/iManufacturer="Raspberry Pi Foundation"
+rndis.usb0/iSerialNumber="00000000001"
+
+# Set up the gadget Ethernet device
+sudo modprobe g_ether
+
+EOT
+
+# Restart the USB gadget service
+sudo systemctl restart usb-gadget.service
+
+# Verify the Ethernet gadget is working
+sudo dmesg | grep -i rndis
+
+

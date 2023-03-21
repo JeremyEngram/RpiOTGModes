@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Enable OTG mode
+echo "dtoverlay=dwc2" | sudo tee -a /boot/config.txt
+echo "dwc2" | sudo tee -a /etc/modules
+
+# Create a new file for the USB gadget configuration
+sudo tee /etc/modprobe.d/gadget.conf > /dev/null <<EOT
+options libcomposite drm_please=0
+EOT
+
+# Create a new service for the USB gadget
+sudo tee /etc/systemd/system/usb-gadget.service > /dev/null <<EOT
+[Unit]
+Description=Configure USB gadget mode
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'echo "1" > /sys/kernel/config/usb_gadget/g1/UDC'
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+# Create a new directory for the USB gadget
+sudo mkdir -p /sys/kernel/config/usb_gadget/g1
+sudo cd /sys/kernel/config/usb_gadget/g1
+
+# Set up the USB gadget configuration
+sudo tee configs/c.1/hid.usb0 > /dev/null <<EOT
+# Serial gadget
+# http://www.linux-usb.org/gadget/usb-gadget-serial.html
+
+# Define and configure the serial device
+gadget_serial_usbid=0x1d6b:0x0104
+gadget_serial_name="Raspberry Pi Serial Gadget"
+gadget_serial_port="/dev/ttyGS0"
+gadget_serial_baudrate="115200"
+gadget_serial_csize=8
+gadget_serial_cstopb=1
+gadget_serial_parity="n"
+gadget_serial_flowcontrol="none"
+
+# Define the serial function
+functions="acm.usb0"
+acm.usb0/class="02"
+acm.usb0/subclass="02"
+acm.usb0/protocol="01"
+acm.usb0/port="\$gadget_serial_port"
+acm.usb0/capabilities="120"
+acm.usb0/acm/rx_buflen="65536"
+acm.usb0/acm/tx_buflen="65536"
+acm.usb0/acm/max_instances="1"
+acm.usb0/acm/instance_index="0"
+acm.usb0/acm/protocol2="00000001"
+acm.usb0/acm/driver="g_serial"
+acm.usb0/acm/idVendor="0x1d6b"
+acm.usb0/acm/idProduct="0xff4f"
+acm.usb0/acm/iSerialNumber="RaspberryPiSerialGadget"
+
+# Set up the gadget serial device
+sudo modprobe g_serial
+
+EOT
+
+# Restart the USB gadget service
+sudo systemctl restart usb-gadget.service
+
+# Verify the serial gadget is working
+sudo dmesg | grep -i serial
