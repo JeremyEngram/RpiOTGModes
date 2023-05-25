@@ -1,0 +1,237 @@
+#!/bin/bash
+
+# Function to display the menu
+display_menu() {
+    echo "OTG Mode Selection Menu"
+    echo "-----------------------"
+    echo "1. Serial (g_serial)"
+    echo "2. Ethernet (g_ether)"
+    echo "3. Mass storage (g_mass_storage)"
+    echo "4. MIDI (g_midi)"
+    echo "5. Audio (g_audio)"
+    echo "6. Keyboard/Mouse (g_hid)"
+    echo "7. Mass storage and Serial (g_acm_ms)"
+    echo "8. Ethernet and Serial (g_cdc)"
+    echo "9. Multi (g_multi)"
+    echo "10. Webcam (g_webcam)"
+    echo "11. Printer (g_printer)"
+    echo "12. Gadget tester (g_zero)"
+    echo "0. Exit"
+    echo "-----------------------"
+}
+
+# Function to read user input
+read_input() {
+    echo "Enter your choice: "
+    read choice
+}
+
+# Function to handle user selection
+handle_selection() {
+    case $1 in
+        1)
+            echo "Switching to Serial (g_serial) mode..."
+           # Function to switch to g_serial mode
+switch_to_serial_mode() {
+    echo "Switching to Serial (g_serial) mode..."
+    modprobe libcomposite
+    cd /sys/kernel/config/usb_gadget/
+    
+    # Create gadget directory
+    mkdir g_serial
+    cd g_serial
+    
+    # Set vendor and product IDs
+    echo 0x1234 > idVendor  # Replace with your desired vendor ID
+    echo 0x5678 > idProduct # Replace with your desired product ID
+    
+    # Set device strings
+    mkdir strings/0x409
+    echo "My Device" > strings/0x409/manufacturer
+    echo "Serial Device" > strings/0x409/product
+    
+    # Create the serial function
+    mkdir functions/acm.usb0
+    ln -s functions/acm.usb0 configs/c.1
+    
+    # Enable the gadget
+    echo "1" > UDC # Replace with your UDC (USB Device Controller) name
+    
+    echo "Switched to Serial (g_serial) mode successfully!"
+}
+
+# Main script execution
+switch_to_serial_mode
+            ;;
+        2)
+            echo "Switching to Ethernet (g_ether) mode... python3 switch_g_ether_otg.py"
+            python3 switch_g_ether_otg.py
+            ;;
+        3)
+            echo "Switching to Mass storage (g_mass_storage) mode..."
+            # Function to configure g_mass_storage
+configure_mass_storage() {
+    echo "Configuring Mass Storage (g_mass_storage)..."
+    modprobe libcomposite
+    cd /sys/kernel/config/usb_gadget/
+    
+    # Create gadget directory
+    mkdir g_mass_storage
+    cd g_mass_storage
+    
+    # Set vendor and product IDs
+    echo 0x1234 > idVendor  # Replace with your desired vendor ID
+    echo 0x5678 > idProduct # Replace with your desired product ID
+    
+    # Set device strings
+    mkdir strings/0x409
+    echo "My Device" > strings/0x409/manufacturer
+    echo "Mass Storage Device" > strings/0x409/product
+    
+    # Configure the mass storage function
+    echo 1 > functions/mass_storage.0/lun.0/cdrom   # Set as a CD-ROM (optional)
+    echo 0 > functions/mass_storage.0/lun.0/ro      # Set as read-only (optional)
+    echo 0 > functions/mass_storage.0/lun.0/nofua   # Disable FUA (optional)
+    echo "/path/to/myfile.img" > functions/mass_storage.0/lun.0/file  # Replace with your desired file
+    
+    # Enable the gadget
+    echo "1" > UDC # Replace with your UDC (USB Device Controller) name
+    
+    echo "Configured Mass Storage (g_mass_storage) successfully!"
+}
+
+# Main script execution
+configure_mass_storage
+            ;;
+        4)
+            echo "Switching to MIDI (g_midi) mode..."
+            # TODO: Add your commands to switch to g_midi mode
+            ;;
+        5)
+            echo "Switching to Audio (g_audio) mode..."
+            # TODO: Add your commands to switch to g_audio mode
+            ;;
+        6)
+            echo "Switching to Keyboard/Mouse (g_hid) mode..."
+            # TODO: Add your commands to switch to g_hid mode
+            ;;
+        7)
+            echo "Switching to Mass storage and Serial (g_acm_ms) mode..."
+            # Function to configure g_acm_ms
+configure_acm_ms() {
+    echo "Configuring Mass Storage and Serial (g_acm_ms)..."
+    modprobe libcomposite
+    cd /sys/kernel/config/usb_gadget/
+    
+    # Create gadget directory
+    mkdir g_acm_ms
+    cd g_acm_ms
+    
+    # Set vendor and product IDs
+    echo 0x1234 > idVendor  # Replace with your desired vendor ID
+    echo 0x5678 > idProduct # Replace with your desired product ID
+    
+    # Set device strings
+    mkdir strings/0x409
+    echo "My Device" > strings/0x409/manufacturer
+    echo "Mass Storage and Serial Device" > strings/0x409/product
+    
+    # Configure the mass storage function
+    mkdir functions/mass_storage.0
+    echo "/path/to/myfile.img" > functions/mass_storage.0/file  # Replace with your desired file
+    
+    # Configure the ACM (Serial) function
+    mkdir functions/acm.usb0
+    
+    # Enable the gadget
+    echo "1" > UDC # Replace with your UDC (USB Device Controller) name
+    
+    echo "Configured Mass Storage and Serial (g_acm_ms) successfully!"
+}
+
+# Main script execution
+configure_acm_ms
+
+            ;;
+        8)
+            echo "Switching to Ethernet and Serial (g_cdc) mode..."
+            # TODO: Add your commands to switch to g_cdc mode
+            echo "NA"
+            ;;
+        9)
+            echo "Switching to Multi (g_multi) mode..."
+            # Function to switch to Multi (g_multi) mode
+switch_to_multi_mode() {
+    echo "Switching to Multi (g_multi) mode..."
+    modprobe libcomposite
+    cd /sys/kernel/config/usb_gadget/
+    
+    # Create gadget directory
+    mkdir g_multi
+    cd g_multi
+    
+    # Set vendor and product IDs
+    echo 0x1234 > idVendor  # Replace with your desired vendor ID
+    echo 0x5678 > idProduct # Replace with your desired product ID
+    
+    # Set device strings
+    mkdir strings/0x409
+    echo "My Device" > strings/0x409/manufacturer
+    echo "Multi-Function Device" > strings/0x409/product
+    
+    # Configure the Ethernet function (g_ether)
+    mkdir functions/rndis.usb0
+    
+    # Configure the Mass storage function (g_mass_storage)
+    mkdir functions/mass_storage.0
+    echo "/path/to/myfile.img" > functions/mass_storage.0/file  # Replace with your desired file
+    
+    # Configure the Serial function (g_serial)
+    mkdir functions/acm.usb0
+    
+    # Enable the gadget
+    echo "1" > UDC # Replace with your UDC (USB Device Controller) name
+    
+    echo "Switched to Multi (g_multi) mode successfully!"
+}
+
+# Main script execution
+switch_to_multi_mode
+            ;;
+        10)
+            echo "Switching to Webcam (g_webcam) mode..."
+            # TODO: Add your commands to switch to g_webcam mode
+            ;;
+        11)
+            echo "Switching to Printer (g_printer) mode..."
+            # TODO: Add your commands to switch to g_printer mode
+            ;;
+        12)
+            echo "Switching to Gadget tester (g_zero) mode..."
+            # TODO: Add your commands to switch to g_zero mode
+            ;;
+        0)
+            echo "Exiting..."
+            exit 0
+            ;;
+        *)
+            echo "Invalid option. Please try again."
+            ;;
+    esac
+}
+
+# Main script execution
+while true; do
+    display_menu
+    read_input
+    handle_selection $choice
+    echo
+done
+
+
+
+
+
+
+
+
